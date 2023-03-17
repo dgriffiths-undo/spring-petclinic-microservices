@@ -15,9 +15,12 @@
  */
 package org.springframework.samples.petclinic.api.boundary.web;
 
+import io.undo.lr.UndoLR;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.samples.petclinic.api.application.CustomersServiceClient;
 import org.springframework.samples.petclinic.api.application.VisitsServiceClient;
 import org.springframework.samples.petclinic.api.dto.OwnerDetails;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import reactor.core.publisher.Mono;
 
 import java.util.function.Function;
@@ -36,6 +40,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 @RequestMapping("/api/gateway")
 public class ApiGatewayController {
 
@@ -47,6 +52,7 @@ public class ApiGatewayController {
 
     @GetMapping(value = "owners/{ownerId}")
     public Mono<OwnerDetails> getOwnerDetails(final @PathVariable int ownerId) {
+        log.info("getOwnerDetails: ownerId = {}", ownerId);
         return customersServiceClient.getOwner(ownerId)
             .flatMap(owner ->
                 visitsServiceClient.getVisitsForPets(owner.getPetIds())
@@ -57,6 +63,32 @@ public class ApiGatewayController {
                     .map(addVisitsToOwner(owner))
             );
 
+    }
+
+    @GetMapping(value = "/startRecording")
+    @ResponseStatus(HttpStatus.OK)
+    public void startRecording() {
+        log.info("start recording");
+        try {
+            UndoLR.start();
+        } catch (Exception e) {
+            log.error("UndoLR.start failed", e);
+        }
+    }
+
+    @GetMapping(value = "/saveRecording/{*filename}")
+    public String saveRecording(@PathVariable String filename) {
+        filename = filename.substring(1);
+        log.info("save recording to {}", filename);
+        try {
+            UndoLR.save(filename);
+            log.info("recording saved");
+            UndoLR.stop();
+            log.info("recording stopped");
+        } catch (Exception e) {
+            log.error("UndoLR.save failed", e);
+        }
+        return "Recording saved to " + filename;
     }
 
     private Function<Visits, OwnerDetails> addVisitsToOwner(OwnerDetails owner) {

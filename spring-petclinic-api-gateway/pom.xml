@@ -133,6 +133,13 @@
             <artifactId>mockwebserver</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Undo -->
+        <dependency>
+            <groupId>io.undo.jdwp</groupId>
+            <artifactId>lr4j_api</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -16,13 +16,17 @@
 package org.springframework.samples.petclinic.customers.web;
 
 import io.micrometer.core.annotation.Timed;
+import io.undo.lr.UndoLR;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.samples.petclinic.customers.model.Owner;
 import org.springframework.samples.petclinic.customers.model.OwnerRepository;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.HandlerMapping;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import java.util.List;
@@ -86,5 +90,36 @@ class OwnerResource {
         ownerModel.setTelephone(ownerRequest.getTelephone());
         log.info("Saving owner {}", ownerModel);
         ownerRepository.save(ownerModel);
+    }
+
+    @GetMapping(value = "/startRecording")
+    @ResponseStatus(HttpStatus.OK)
+    public void startRecording() {
+        log.info("start recording");
+        try {
+            UndoLR.start();
+        } catch (Exception e) {
+            log.error("UndoLR.start failed", e);
+        }
+    }
+
+    @GetMapping(value = "/saveRecording/**")
+    public String saveRecording(HttpServletRequest request) {
+        String filename =
+                new AntPathMatcher()
+                        .extractPathWithinPattern(
+                                request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE)
+                                        .toString(),
+                                request.getRequestURI());
+        log.info("save recording to {}", filename);
+        try {
+            UndoLR.save(filename);
+            log.info("recording saved");
+            UndoLR.stop();
+            log.info("recording stopped");
+        } catch (Exception e) {
+            log.error("UndoLR.save failed", e);
+        }
+        return "Recording saved to " + filename;
     }
 }
