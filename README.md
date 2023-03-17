@@ -1,3 +1,7 @@
+# Undo changes for Live Recorder
+
+Reverted back to branch v2.6.7 because the latest version doesn't work with Zipkin
+
 # Distributed version of the Spring PetClinic Sample Application built with Spring Cloud 
 
 [![Build Status](https://github.com/spring-petclinic/spring-petclinic-microservices/actions/workflows/maven-build.yml/badge.svg)](https://github.com/spring-petclinic/spring-petclinic-microservices/actions/workflows/maven-build.yml)
