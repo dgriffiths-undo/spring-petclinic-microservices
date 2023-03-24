@@ -92,6 +92,9 @@ public class ApiGatewayController {
     }
 
     private Function<Visits, OwnerDetails> addVisitsToOwner(OwnerDetails owner) {
+        if (owner != null && owner.getTelephone() != null && owner.getTelephone().startsWith("0")) {
+            throw new Error("Bad owner: " + owner);
+        }
         return visits -> {
             owner.getPets()
                 .forEach(pet -> pet.getVisits()
