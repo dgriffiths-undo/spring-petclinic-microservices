@@ -88,7 +88,7 @@ public class ApiGatewayController {
         } catch (Exception e) {
             log.error("UndoLR.save failed", e);
         }
-        return "Recording saved to " + filename;
+        return "Recording saved to " + filename + "\n";
     }
 
     private Function<Visits, OwnerDetails> addVisitsToOwner(OwnerDetails owner) {

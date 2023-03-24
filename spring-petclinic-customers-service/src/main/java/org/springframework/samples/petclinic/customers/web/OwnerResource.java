@@ -62,7 +62,18 @@ class OwnerResource {
      */
     @GetMapping(value = "/{ownerId}")
     public Optional<Owner> findOwner(@PathVariable("ownerId") @Min(1) int ownerId) {
-        return ownerRepository.findById(ownerId);
+        log.info("Finding owner {}", ownerId);
+        Optional<Owner> owner = ownerRepository.findById(ownerId);
+        if(owner.isPresent()) {
+            log.info("Found owner {}", owner.get());
+            if ("Peter".equalsIgnoreCase(owner.get().getFirstName())) {
+                throw new RuntimeException("simulate RuntimeException bug");
+            } else if ("Maria".equalsIgnoreCase(owner.get().getFirstName())) {
+                log.info("simulate not finding owner");
+                return Optional.empty();
+            }
+        }
+        return owner;
     }
 
     /**
@@ -120,6 +131,6 @@ class OwnerResource {
         } catch (Exception e) {
             log.error("UndoLR.save failed", e);
         }
-        return "Recording saved to " + filename;
+        return "Recording saved to " + filename + "\n";
     }
 }
