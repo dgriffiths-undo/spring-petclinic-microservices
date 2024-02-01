@@ -20,3 +20,5 @@ target/
 # Branch switching
 generated/
 tags
+
+*.undo

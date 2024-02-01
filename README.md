@@ -1,6 +1,71 @@
-# Undo changes for Live Recorder
+# Undo changes for LiveRecorder
 
 Reverted back to branch v2.6.7 because the latest version doesn't work with Zipkin
+
+## How to use with Undo LiveRecorder
+
+We demonstrate how to modify a Microservices version of the Spring PetClinic sample to
+- Use the UndoLR java API to turn on and off recording only when desired
+- Debug both client and server microservices and step across from one to the other
+
+Open the `ApiGatewayController.java` class and observe the `startRecording` and `saveRecording` methods.
+These are REST API calls that have been added to the api gateway microservice to turn on recording on demand and save a recording using the UndoLR API
+- `UndoLR.start()` - starts recording
+- `UndoLR.save(filename)` - saves a recording to the given filename
+
+Similar methods have been added to `OwnerResource.java` to start and stop recording the customers service microservice
+
+In a terminal window, set the environment variable `LR4J_HOME` to point to the directory containing `lr4j-record-1.0`.
+Open the bash `script scripts/run_all.sh` and observe that it starts the api gateway and customer services microservices with the following extra arguments:
+- `-XX:-Inline -XX:TieredStopAtLevel=1 -agentpath:${LR4J_HOME}/lr4j-record-1.0/lr4j-record-1.0.so`
+(This is required for the UndoLR API calls to work)
+
+Copy the file `lr4j-record-1.0/lr4j_api-1.1.jar` into the top level spring-petclinic-microservices directory
+
+Now build the project by typing `mvn clean package`
+
+In addition to docker you must also have `docker-compose` installed:
+- `sudo curl -SL https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose`
+- `sudo chmod 0555 /usr/local/bin/docker-compose`
+
+We are now ready to start the microservices
+- `scripts/run_all.sh`
+
+You can then access petclinic here: http://localhost:8080/
+
+Have a play with the application - list the owners and then click on one
+
+Start recording the customers service and api gateway microservices by calling the appropriate REST endpoints:
+- `curl 'http://localhost:8081/owners/startRecording'`
+- `curl 'http://localhost:8080/api/gateway/startRecording'`
+
+Now continue to use the application by clicking the first couple of owners. Note that it will be a lot slower and you may think at first that it hasn’t responded.
+Click on the owner `Peter McTavish` - this actually has a deliberate bug and will not show anything. If you view `target/customers-service.log` you will see the exception thrown
+
+Stop recording the customers service and api gateway microservices and save recordings by calling the following REST endpoints:
+- `curl 'http://localhost:8081/owners/saveRecording/spring-petclinic-customers-service.undo'`
+- `curl ‘http://localhost:8080/api/gateway/saveRecording/spring-petclinic-api-gateway.undo’`
+
+You will see messages to say that the recordings have been saved
+
+Now you are ready to replay the recordings in IntelliJ. In IntelliJ create Remote JVM Debug configurations for ports 9000 and 9001 named `API Gateway` and `Customers Service`
+
+Start two replay sessions:
+- `lr4j-replay-1.0/lr4j/lr4j_replay --input spring-petclinic-api-gateway.undo --port 9000`
+- `lr4j-replay-1.0/lr4j/lr4j_replay --input spring-petclinic-customers-service.undo --port 9001`
+
+Open the `ApiGatewayController` java file and set a breakpoint at the first line of `getOwnerDetails`
+
+Select the `API Gateway` run configuration and click Debug. You should arrive at the breakpoint.
+Now select the `Customers Service` run configuration and click Debug.
+A new session starts and runs to the end of the recording because no breakpoint has been set yet.
+Select the `API Gateway` tab in the debug pane.
+Step over to line 56 where it is about to call the customers service REST API.
+
+Click on the `Step Across` button which is to the far right.
+You will now see a dialog as it locates the position in the other recording.
+(If for some reason it is not displaying the correct thread, pick the `http-nio-8081-exec-n` thread that has status `RUNNING`.)
+You should now be at the `findOwner` method with the correct `ownerId`.
 
 # Distributed version of the Spring PetClinic Sample Application built with Spring Cloud 
 
